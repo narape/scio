@@ -1,10 +1,11 @@
 package org.apache.beam.sdk.extensions.smb;
 
-import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
 import org.apache.beam.sdk.coders.Coder;
 
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,20 +26,22 @@ public final class IcebergEncoder implements BucketMetadata.Encoder {
     }
 
     private byte[] encode(long value) {
-        Slice slice = Slices.allocate(Long.BYTES);
-        slice.setLong(0, value);
-        return slice.getBytes();
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putLong(value);
+        return buffer.array();
     }
 
     private byte[] encode(String value) {
-        return Slices.utf8Slice(value).getBytes();
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     private byte[] encode(UUID value) {
-        Slice slice = Slices.allocate(Long.BYTES * 2);
-        slice.setLong(0, Long.reverseBytes(value.getMostSignificantBits()));
-        slice.setLong(Long.BYTES, Long.reverseBytes(value.getLeastSignificantBits()));
-        return slice.getBytes();
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES * 2);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.putLong(value.getMostSignificantBits());
+        buffer.putLong(value.getLeastSignificantBits());
+        return buffer.array();
     }
 
     private byte[] encode(LocalDate value) {
